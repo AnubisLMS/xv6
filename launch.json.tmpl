@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to QEMU",
+      "type": "gdb",
+      "request": "attach",
+      "executable": "./kernel",
+      "target": "localhost:1234",
+      "remote": true,
+      "gdbpath": "/usr/bin/gdb",
+      "cwd": "${workspaceRoot}",
+      "autorun": [
+        "set substitute-path /root ."
+      ]
+    }
+  ]
+}
