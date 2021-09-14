@@ -243,7 +243,7 @@ qemu-nox: fs.img xv6.img
 
 .PHONY: .gdbinit
 .gdbinit: .gdbinit.tmpl
-	sed -i "s/# source/source/" ~/.gdbinit
+	if [ -f ~/.gdbinit ]; then sed -i "s/# source/source/" ~/.gdbinit; fi
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
 launch.json: launch.json.tmpl
