@@ -18,8 +18,8 @@ struct file {
 struct inode {
   unsigned int dev;  // Device number
   unsigned int inum; // Inode number
-  int ref;   // Reference count
-  int flags; // I_BUSY, I_VALID
+  int ref;           // Reference count
+  int flags;         // I_BUSY, I_VALID
 
   short type; // copy of disk inode
   short major;
@@ -41,8 +41,5 @@ struct devsw {
 extern struct devsw devsw[];
 
 #define CONSOLE 1
-
-// PAGEBREAK!
-// Blank page.
 
 #endif // XV6_FILE_H
