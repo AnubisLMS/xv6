@@ -7,34 +7,29 @@
 #include "x86.h"
 
 int exec(char* path, char** argv) {
-  char *s, *last;
-  int i, off;
-  unsigned int argc, sz, sp, ustack[3 + MAXARG + 1];
-  struct elfhdr elf;
-  struct inode* ip;
-  struct proghdr ph;
-  pde_t *pgdir, *oldpgdir;
-
   begin_op();
-  if((ip = namei(path)) == 0) {
+  struct inode* ip = namei(path);
+  if(!ip) {
     end_op();
     return -1;
   }
   ilock(ip);
-  pgdir = 0;
 
   // Check ELF header
+  pde_t* pgdir = 0;
+  struct elfhdr elf;
   if(readi(ip, (char*) &elf, 0, sizeof(elf)) < sizeof(elf))
     goto bad;
   if(elf.magic != ELF_MAGIC)
     goto bad;
 
-  if((pgdir = setupkvm()) == 0)
+  if(!(pgdir = setupkvm()))
     goto bad;
 
   // Load program into memory.
-  sz = 0;
-  for(i = 0, off = elf.phoff; i < elf.phnum; i++, off += sizeof(ph)) {
+  unsigned int sz = 0;
+  struct proghdr ph;
+  for(int i = 0, off = elf.phoff; i < elf.phnum; i++, off += sizeof(ph)) {
     if(readi(ip, (char*) &ph, off, sizeof(ph)) != sizeof(ph))
       goto bad;
     if(ph.type != ELF_PROG_LOAD)
@@ -56,10 +51,10 @@ int exec(char* path, char** argv) {
   if((sz = allocuvm(pgdir, sz, sz + 2 * PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*) (sz - 2 * PGSIZE));
-  sp = sz;
 
   // Push argument strings, prepare rest of stack in ustack.
-  for(argc = 0; argv[argc]; argc++) {
+  unsigned int argc, sp, ustack[3 + MAXARG + 1];
+  for(argc = 0, sp = sz; argv[argc]; argc++) {
     if(argc >= MAXARG)
       goto bad;
     sp = (sp - (strlen(argv[argc]) + 1)) & ~3;
@@ -78,13 +73,14 @@ int exec(char* path, char** argv) {
     goto bad;
 
   // Save program name for debugging.
-  for(last = s = path; *s; s++)
-    if(*s == '/')
-      last = s + 1;
+  char* last = path;
+  for(; *path; path++)
+    if(*path == '/')
+      last = path + 1;
   safestrcpy(proc->name, last, sizeof(proc->name));
 
   // Commit to the user image.
-  oldpgdir = proc->pgdir;
+  pde_t* oldpgdir = proc->pgdir;
   proc->pgdir = pgdir;
   proc->sz = sz;
   proc->tf->eip = elf.entry; // main
