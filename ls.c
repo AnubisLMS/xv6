@@ -4,11 +4,10 @@
 
 char* fmtname(char* path) {
   static char buf[DIRSIZ + 1];
-  char* p;
+  char* p = path + strlen(path);
 
   // Find first character after last slash.
-  for(p = path + strlen(path); p >= path && *p != '/'; p--)
-    ;
+  for(; p >= path && *p != '/'; p--) {}
   p++;
 
   // Return blank-padded name.
@@ -20,16 +19,15 @@ char* fmtname(char* path) {
 }
 
 void ls(char* path) {
-  char buf[512], *p;
-  int fd;
-  struct dirent de;
-  struct stat st;
+  char buf[512];
 
-  if((fd = open(path, 0)) < 0) {
+  int fd = open(path, 0);
+  if(fd < 0) {
     printf(2, "ls: cannot open %s\n", path);
     return;
   }
 
+  struct stat st;
   if(fstat(fd, &st) < 0) {
     printf(2, "ls: cannot stat %s\n", path);
     close(fd);
@@ -41,14 +39,15 @@ void ls(char* path) {
       printf(1, "%s %d %d %d\n", fmtname(path), st.type, st.ino, st.size);
       break;
 
-    case T_DIR:
-      if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf) {
+    case T_DIR: {
+      if(strlen(path) + 1 + DIRSIZ + 1 > sizeof(buf)) {
         printf(1, "ls: path too long\n");
         break;
       }
       strcpy(buf, path);
-      p = buf + strlen(buf);
+      char* p = buf + strlen(buf);
       *p++ = '/';
+      struct dirent de;
       while(read(fd, &de, sizeof(de)) == sizeof(de)) {
         if(de.inum == 0)
           continue;
@@ -61,18 +60,17 @@ void ls(char* path) {
         printf(1, "%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
       }
       break;
+    }
   }
   close(fd);
 }
 
 int main(int argc, char* argv[]) {
-  int i;
-
   if(argc < 2) {
     ls(".");
     exit();
   }
-  for(i = 1; i < argc; i++)
+  for(int i = 1; i < argc; i++)
     ls(argv[i]);
   exit();
 }
