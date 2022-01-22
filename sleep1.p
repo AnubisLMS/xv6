@@ -35,7 +35,7 @@ If this is changed to:
 		i = i + 1;
 
 then a deadlock can happen, because the non-atomic
-increment of value conflicts with the non-atomic 
+increment of value conflicts with the non-atomic
 decrement in consumer, causing value to have a bad value.
 Try this.
 
@@ -97,7 +97,7 @@ inline wakeup()
 active[N] proctype consumer()
 {
 	byte i, x;
-	
+
 	i = 0;
 	do
 	:: i < ITER ->
@@ -116,7 +116,7 @@ active[N] proctype consumer()
 active[N] proctype producer()
 {
 	byte i, x, w;
-	
+
 	i = 0;
 	do
 	:: i < ITER ->
@@ -129,6 +129,5 @@ active[N] proctype producer()
 		break
 	od;
 	i = 0;
-	skip	
+	skip
 }
-

@@ -4,7 +4,7 @@ $| = 1;
 
 sub writefile($@){
 	my ($file, @lines) = @_;
-	
+
 	sleep(1);
 	open(F, ">$file") || die "open >$file: $!";
 	print F @lines;
@@ -20,7 +20,7 @@ for($i=0; $i<@ARGV; $i++){
 	}
 	@lines = <F>;
 	close(F);
-	
+
 	$obj = "$file.o";
 	$obj =~ s/\.c\.o$/.o/;
 	system("touch $file");

@@ -1,15 +1,14 @@
 // The local APIC manages internal (non-I/O) interrupts.
 // See Chapter 8 & Appendix C of Intel processor manual volume 3.
 
-#include "types.h"
-#include "defs.h"
 #include "date.h"
+#include "defs.h"
 #include "memlayout.h"
-#include "traps.h"
 #include "mmu.h"
+#include "traps.h"
 #include "x86.h"
 
-// Local APIC registers, divided by 4 for use as uint[] indices.
+// Local APIC registers, divided by 4 for use as unsigned int[] indices.
 #define ID (0x0020 / 4)    // ID
 #define VER (0x0030 / 4)   // Version
 #define TPR (0x0080 / 4)   // Task Priority
@@ -40,7 +39,7 @@
 #define TCCR (0x0390 / 4)   // Timer Current Count
 #define TDCR (0x03E0 / 4)   // Timer Divide Configuration
 
-volatile uint *lapic; // Initialized in mp.c
+volatile unsigned int* lapic; // Initialized in mp.c
 
 static void lapicw(int index, int value) {
   lapic[index] = value;
@@ -49,7 +48,7 @@ static void lapicw(int index, int value) {
 // PAGEBREAK!
 
 void lapicinit(void) {
-  if (!lapic)
+  if(!lapic)
     return;
 
   // Enable local APIC; set spurious interrupt vector.
@@ -69,7 +68,7 @@ void lapicinit(void) {
 
   // Disable performance counter overflow interrupts
   // on machines that provide that interrupt entry.
-  if (((lapic[VER] >> 16) & 0xFF) >= 4)
+  if(((lapic[VER] >> 16) & 0xFF) >= 4)
     lapicw(PCINT, MASKED);
 
   // Map error interrupt to IRQ_ERROR.
@@ -85,7 +84,7 @@ void lapicinit(void) {
   // Send an Init Level De-Assert to synchronise arbitration ID's.
   lapicw(ICRHI, 0);
   lapicw(ICRLO, BCAST | INIT | LEVEL);
-  while (lapic[ICRLO] & DELIVS)
+  while(lapic[ICRLO] & DELIVS)
     ;
 
   // Enable interrupts on the APIC (but not on the processor).
@@ -98,21 +97,21 @@ int cpunum(void) {
   // Would prefer to panic but even printing is chancy here:
   // almost everything, including cprintf and panic, calls cpu,
   // often indirectly through acquire and release.
-  if (readeflags() & FL_IF) {
+  if(readeflags() & FL_IF) {
     static int n;
-    if (n++ == 0)
+    if(n++ == 0)
       cprintf("cpu called from %x with interrupts enabled\n",
-              __builtin_return_address(0));
+          __builtin_return_address(0));
   }
 
-  if (lapic)
+  if(lapic)
     return lapic[ID] >> 24;
   return 0;
 }
 
 // Acknowledge interrupt.
 void lapiceoi(void) {
-  if (lapic)
+  if(lapic)
     lapicw(EOI, 0);
 }
 
@@ -125,16 +124,16 @@ void microdelay(int us) {}
 
 // Start additional processor running entry code at addr.
 // See Appendix B of MultiProcessor Specification.
-void lapicstartap(uchar apicid, uint addr) {
+void lapicstartap(unsigned char apicid, unsigned int addr) {
   int i;
-  ushort *wrv;
+  unsigned short* wrv;
 
   // "The BSP must initialize CMOS shutdown code to 0AH
   // and the warm reset vector (DWORD based at 40:67) to point at
   // the AP startup code prior to the [universal startup algorithm]."
   outb(CMOS_PORT, 0xF); // offset 0xF is shutdown code
   outb(CMOS_PORT + 1, 0x0A);
-  wrv = (ushort *)P2V((0x40 << 4 | 0x67)); // Warm reset vector
+  wrv = (unsigned short*) P2V((0x40 << 4 | 0x67)); // Warm reset vector
   wrv[0] = 0;
   wrv[1] = addr >> 4;
 
@@ -151,7 +150,7 @@ void lapicstartap(uchar apicid, uint addr) {
   // when it is in the halted state due to an INIT.  So the second
   // should be ignored, but it is part of the official Intel algorithm.
   // Bochs complains about the second one.  Too bad for Bochs.
-  for (i = 0; i < 2; i++) {
+  for(i = 0; i < 2; i++) {
     lapicw(ICRHI, apicid << 24);
     lapicw(ICRLO, STARTUP | (addr >> 12));
     microdelay(200);
@@ -169,14 +168,14 @@ void lapicstartap(uchar apicid, uint addr) {
 #define MONTH 0x08
 #define YEAR 0x09
 
-static uint cmos_read(uint reg) {
+static unsigned int cmos_read(unsigned int reg) {
   outb(CMOS_PORT, reg);
   microdelay(200);
 
   return inb(CMOS_RETURN);
 }
 
-static void fill_rtcdate(struct rtcdate *r) {
+static void fill_rtcdate(struct rtcdate* r) {
   r->second = cmos_read(SECS);
   r->minute = cmos_read(MINS);
   r->hour = cmos_read(HOURS);
@@ -186,7 +185,7 @@ static void fill_rtcdate(struct rtcdate *r) {
 }
 
 // qemu seems to use 24-hour GWT and the values are BCD encoded
-void cmostime(struct rtcdate *r) {
+void cmostime(struct rtcdate* r) {
   struct rtcdate t1, t2;
   int sb, bcd;
 
@@ -195,17 +194,17 @@ void cmostime(struct rtcdate *r) {
   bcd = (sb & (1 << 2)) == 0;
 
   // make sure CMOS doesn't modify time while we read it
-  for (;;) {
+  for(;;) {
     fill_rtcdate(&t1);
-    if (cmos_read(CMOS_STATA) & CMOS_UIP)
+    if(cmos_read(CMOS_STATA) & CMOS_UIP)
       continue;
     fill_rtcdate(&t2);
-    if (memcmp(&t1, &t2, sizeof(t1)) == 0)
+    if(memcmp(&t1, &t2, sizeof(t1)) == 0)
       break;
   }
 
   // convert
-  if (bcd) {
+  if(bcd) {
 #define CONV(x) (t1.x = ((t1.x >> 4) * 10) + (t1.x & 0xf))
     CONV(second);
     CONV(minute);

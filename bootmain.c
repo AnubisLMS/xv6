@@ -5,37 +5,36 @@
 // bootmain() loads an ELF kernel image from the disk starting at
 // sector 1 and then jumps to the kernel entry routine.
 
-#include "types.h"
 #include "elf.h"
-#include "x86.h"
 #include "memlayout.h"
+#include "x86.h"
 
 #define SECTSIZE 512
 
-void readseg(uchar *, uint, uint);
+void readseg(unsigned char*, unsigned int, unsigned int);
 
 void bootmain(void) {
-  struct elfhdr *elf;
+  struct elfhdr* elf;
   struct proghdr *ph, *eph;
   void (*entry)(void);
-  uchar *pa;
+  unsigned char* pa;
 
-  elf = (struct elfhdr *)0x10000; // scratch space
+  elf = (struct elfhdr*) 0x10000; // scratch space
 
   // Read 1st page off disk
-  readseg((uchar *)elf, 4096, 0);
+  readseg((unsigned char*) elf, 4096, 0);
 
   // Is this an ELF executable?
-  if (elf->magic != ELF_MAGIC)
+  if(elf->magic != ELF_MAGIC)
     return; // let bootasm.S handle error
 
   // Load each program segment (ignores ph flags).
-  ph = (struct proghdr *)((uchar *)elf + elf->phoff);
+  ph = (struct proghdr*) ((unsigned char*) elf + elf->phoff);
   eph = ph + elf->phnum;
-  for (; ph < eph; ph++) {
-    pa = (uchar *)ph->paddr;
+  for(; ph < eph; ph++) {
+    pa = (unsigned char*) ph->paddr;
     readseg(pa, ph->filesz, ph->off);
-    if (ph->memsz > ph->filesz)
+    if(ph->memsz > ph->filesz)
       stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
   }
 
@@ -47,12 +46,12 @@ void bootmain(void) {
 
 void waitdisk(void) {
   // Wait for disk ready.
-  while ((inb(0x1F7) & 0xC0) != 0x40)
+  while((inb(0x1F7) & 0xC0) != 0x40)
     ;
 }
 
 // Read a single sector at offset into dst.
-void readsect(void *dst, uint offset) {
+void readsect(void* dst, unsigned int offset) {
   // Issue command.
   waitdisk();
   outb(0x1F2, 1); // count = 1
@@ -69,8 +68,8 @@ void readsect(void *dst, uint offset) {
 
 // Read 'count' bytes at 'offset' from kernel into physical address 'pa'.
 // Might copy more than asked.
-void readseg(uchar *pa, uint count, uint offset) {
-  uchar *epa;
+void readseg(unsigned char* pa, unsigned int count, unsigned int offset) {
+  unsigned char* epa;
 
   epa = pa + count;
 
@@ -83,6 +82,6 @@ void readseg(uchar *pa, uint count, uint offset) {
   // If this is too slow, we could read lots of sectors at a time.
   // We'd write more to memory than asked, but it doesn't matter --
   // we load in increasing order.
-  for (; pa < epa; pa += SECTSIZE, offset++)
+  for(; pa < epa; pa += SECTSIZE, offset++)
     readsect(pa, offset);
 }

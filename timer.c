@@ -2,9 +2,9 @@
 // Only used on uniprocessors;
 // SMP machines use the local APIC timer.
 
-#include "types.h"
 #include "defs.h"
 #include "traps.h"
+
 #include "x86.h"
 
 #define IO_TIMER1 0x040 // 8253 Timer #1

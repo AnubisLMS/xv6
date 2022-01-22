@@ -20,12 +20,11 @@
 // * B_DIRTY: the buffer data has been modified
 //     and needs to be written to disk.
 
-#include "types.h"
+#include "buf.h"
 #include "defs.h"
+#include "fs.h"
 #include "param.h"
 #include "spinlock.h"
-#include "fs.h"
-#include "buf.h"
 
 struct {
   struct spinlock lock;
@@ -37,7 +36,7 @@ struct {
 } bcache;
 
 void binit(void) {
-  struct buf *b;
+  struct buf* b;
 
   initlock(&bcache.lock, "bcache");
 
@@ -45,7 +44,7 @@ void binit(void) {
   // Create linked list of buffers
   bcache.head.prev = &bcache.head;
   bcache.head.next = &bcache.head;
-  for (b = bcache.buf; b < bcache.buf + NBUF; b++) {
+  for(b = bcache.buf; b < bcache.buf + NBUF; b++) {
     b->next = bcache.head.next;
     b->prev = &bcache.head;
     b->dev = -1;
@@ -57,16 +56,16 @@ void binit(void) {
 // Look through buffer cache for block on device dev.
 // If not found, allocate a buffer.
 // In either case, return B_BUSY buffer.
-static struct buf *bget(uint dev, uint blockno) {
-  struct buf *b;
+static struct buf* bget(unsigned int dev, unsigned int blockno) {
+  struct buf* b;
 
   acquire(&bcache.lock);
 
 loop:
   // Is the block already cached?
-  for (b = bcache.head.next; b != &bcache.head; b = b->next) {
-    if (b->dev == dev && b->blockno == blockno) {
-      if (!(b->flags & B_BUSY)) {
+  for(b = bcache.head.next; b != &bcache.head; b = b->next) {
+    if(b->dev == dev && b->blockno == blockno) {
+      if(!(b->flags & B_BUSY)) {
         b->flags |= B_BUSY;
         release(&bcache.lock);
         return b;
@@ -79,8 +78,8 @@ loop:
   // Not cached; recycle some non-busy and clean buffer.
   // "clean" because B_DIRTY and !B_BUSY means log.c
   // hasn't yet committed the changes to the buffer.
-  for (b = bcache.head.prev; b != &bcache.head; b = b->prev) {
-    if ((b->flags & B_BUSY) == 0 && (b->flags & B_DIRTY) == 0) {
+  for(b = bcache.head.prev; b != &bcache.head; b = b->prev) {
+    if((b->flags & B_BUSY) == 0 && (b->flags & B_DIRTY) == 0) {
       b->dev = dev;
       b->blockno = blockno;
       b->flags = B_BUSY;
@@ -92,19 +91,19 @@ loop:
 }
 
 // Return a B_BUSY buf with the contents of the indicated block.
-struct buf *bread(uint dev, uint blockno) {
-  struct buf *b;
+struct buf* bread(unsigned int dev, unsigned int blockno) {
+  struct buf* b;
 
   b = bget(dev, blockno);
-  if (!(b->flags & B_VALID)) {
+  if(!(b->flags & B_VALID)) {
     iderw(b);
   }
   return b;
 }
 
 // Write b's contents to disk.  Must be B_BUSY.
-void bwrite(struct buf *b) {
-  if ((b->flags & B_BUSY) == 0)
+void bwrite(struct buf* b) {
+  if((b->flags & B_BUSY) == 0)
     panic("bwrite");
   b->flags |= B_DIRTY;
   iderw(b);
@@ -112,8 +111,8 @@ void bwrite(struct buf *b) {
 
 // Release a B_BUSY buffer.
 // Move to the head of the MRU list.
-void brelse(struct buf *b) {
-  if ((b->flags & B_BUSY) == 0)
+void brelse(struct buf* b) {
+  if((b->flags & B_BUSY) == 0)
     panic("brelse");
 
   acquire(&bcache.lock);

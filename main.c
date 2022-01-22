@@ -1,14 +1,13 @@
-#include "types.h"
 #include "defs.h"
-#include "param.h"
 #include "memlayout.h"
 #include "mmu.h"
+#include "param.h"
 #include "proc.h"
 #include "x86.h"
 
 static void startothers(void);
 static void mpmain(void) __attribute__((noreturn));
-extern pde_t *kpgdir;
+extern pde_t* kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
 
 // Bootstrap processor starts running C code here.
@@ -30,7 +29,7 @@ int main(void) {
   binit();       // buffer cache
   fileinit();    // file table
   ideinit();     // disk
-  if (!ismp)
+  if(!ismp)
     timerinit();                              // uniprocessor timer
   startothers();                              // start other processors
   kinit2(P2V(4 * 1024 * 1024), P2V(PHYSTOP)); // must come after startothers()
@@ -59,33 +58,34 @@ pde_t entrypgdir[]; // For entry.S
 
 // Start the non-boot (AP) processors.
 static void startothers(void) {
-  extern uchar _binary_entryother_start[], _binary_entryother_size[];
-  uchar *code;
-  struct cpu *c;
-  char *stack;
+  extern unsigned char _binary_entryother_start[], _binary_entryother_size[];
+  unsigned char* code;
+  struct cpu* c;
+  char* stack;
 
   // Write entry code to unused memory at 0x7000.
   // The linker has placed the image of entryother.S in
   // _binary_entryother_start.
   code = p2v(0x7000);
-  memmove(code, _binary_entryother_start, (uint)_binary_entryother_size);
+  memmove(code, _binary_entryother_start,
+      (unsigned int) _binary_entryother_size);
 
-  for (c = cpus; c < cpus + ncpu; c++) {
-    if (c == cpus + cpunum()) // We've started already.
+  for(c = cpus; c < cpus + ncpu; c++) {
+    if(c == cpus + cpunum()) // We've started already.
       continue;
 
     // Tell entryother.S what stack to use, where to enter, and what
     // pgdir to use. We cannot use kpgdir yet, because the AP processor
     // is running in low  memory, so we use entrypgdir for the APs too.
     stack = kalloc();
-    *(void **)(code - 4) = stack + KSTACKSIZE;
-    *(void **)(code - 8) = mpenter;
-    *(int **)(code - 12) = (void *)v2p(entrypgdir);
+    *(void**) (code - 4) = stack + KSTACKSIZE;
+    *(void**) (code - 8) = mpenter;
+    *(int**) (code - 12) = (void*) v2p(entrypgdir);
 
     lapicstartap(c->id, v2p(code));
 
     // wait for cpu to finish mpmain()
-    while (c->started == 0)
+    while(c->started == 0)
       ;
   }
 }

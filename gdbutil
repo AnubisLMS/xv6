@@ -25,7 +25,7 @@ define outputsts
       loop_break
     end
     if $arg0 == $STS_LDT
-      echo STS_LDT\ 
+      echo STS_LDT\
       loop_break
     end
     if $arg0 == $STS_T16B
@@ -37,7 +37,7 @@ define outputsts
       loop_break
     end
     if $arg0 == $STS_TG
-      echo STS_TG\ \ 
+      echo STS_TG\ \
       loop_break
     end
     if $arg0 == $STS_IG16
@@ -71,7 +71,7 @@ define outputsts
     echo Reserved
     loop_break
   end
-end  
+end
 
 # IA32 2007, Volume 3A, Table 3-1
 set $STA_X = 0x8
@@ -164,7 +164,7 @@ define printdesc
   if $argc != 1
     echo Usage: printdesc expr
   else
-    _printdesc ((uint*)&($arg0))[0] ((uint*)&($arg0))[1]
+    _printdesc ((unsigned int*)&($arg0))[0] ((unsigned int*)&($arg0))[1]
     printf "\n"
   end
 end
