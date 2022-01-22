@@ -5,12 +5,11 @@
 int kbdgetc(void) {
   static unsigned int shift;
   static unsigned char* charcode[4] = {normalmap, shiftmap, ctlmap, ctlmap};
-  unsigned int st, data, c;
 
-  st = inb(KBSTATP);
-  if((st & KBS_DIB) == 0)
+  unsigned int st = inb(KBSTATP);
+  if(!(st & KBS_DIB))
     return -1;
-  data = inb(KBDATAP);
+  unsigned int data = inb(KBDATAP);
 
   if(data == 0xE0) {
     shift |= E0ESC;
@@ -28,7 +27,7 @@ int kbdgetc(void) {
 
   shift |= shiftcode[data];
   shift ^= togglecode[data];
-  c = charcode[shift & (CTL | SHIFT)][data];
+  unsigned int c = charcode[shift & (CTL | SHIFT)][data];
   if(shift & CAPSLOCK) {
     if('a' <= c && c <= 'z')
       c += 'A' - 'a';
