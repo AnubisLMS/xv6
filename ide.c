@@ -33,17 +33,13 @@ static void idestart(struct buf*);
 // Wait for IDE disk to become ready.
 static int idewait(int checkerr) {
   int r;
-
-  while(((r = inb(0x1f7)) & (IDE_BSY | IDE_DRDY)) != IDE_DRDY)
-    ;
+  while(((r = inb(0x1f7)) & (IDE_BSY | IDE_DRDY)) != IDE_DRDY) {}
   if(checkerr && (r & (IDE_DF | IDE_ERR)) != 0)
     return -1;
   return 0;
 }
 
 void ideinit(void) {
-  int i;
-
   initlock(&idelock, "ide");
   picenable(IRQ_IDE);
   ioapicenable(IRQ_IDE, ncpu - 1);
@@ -51,7 +47,7 @@ void ideinit(void) {
 
   // Check if disk 1 is present
   outb(0x1f6, 0xe0 | (1 << 4));
-  for(i = 0; i < 1000; i++) {
+  for(int i = 0; i < 1000; i++) {
     if(inb(0x1f7) != 0) {
       havedisk1 = 1;
       break;
@@ -91,28 +87,25 @@ static void idestart(struct buf* b) {
 
 // Interrupt handler.
 void ideintr(void) {
-  struct buf* b;
-
   // First queued buffer is the active request.
   acquire(&idelock);
-  if((b = idequeue) == 0) {
+  if(!idequeue) {
     release(&idelock);
     // cprintf("spurious IDE interrupt\n");
     return;
   }
-  idequeue = b->qnext;
 
   // Read data if needed.
-  if(!(b->flags & B_DIRTY) && idewait(1) >= 0)
-    insl(0x1f0, b->data, BSIZE / 4);
+  if(!(idequeue->flags & B_DIRTY) && idewait(1) >= 0)
+    insl(0x1f0, idequeue->data, BSIZE / 4);
 
   // Wake process waiting for this buf.
-  b->flags |= B_VALID;
-  b->flags &= ~B_DIRTY;
-  wakeup(b);
+  idequeue->flags |= B_VALID;
+  idequeue->flags &= ~B_DIRTY;
+  wakeup(idequeue);
 
   // Start disk on next buf in queue.
-  if(idequeue != 0)
+  if((idequeue = idequeue->qnext))
     idestart(idequeue);
 
   release(&idelock);
@@ -123,8 +116,6 @@ void ideintr(void) {
 // If B_DIRTY is set, write buf to disk, clear B_DIRTY, set B_VALID.
 // Else if B_VALID is not set, read buf from disk, set B_VALID.
 void iderw(struct buf* b) {
-  struct buf** pp;
-
   if(!(b->flags & B_BUSY))
     panic("iderw: buf not busy");
   if((b->flags & (B_VALID | B_DIRTY)) == B_VALID)
@@ -136,8 +127,8 @@ void iderw(struct buf* b) {
 
   // Append b to idequeue.
   b->qnext = 0;
-  for(pp = &idequeue; *pp; pp = &(*pp)->qnext) // DOC:insert-queue
-    ;
+  struct buf** pp;
+  for(pp = &idequeue; *pp; pp = &(*pp)->qnext) {} // DOC:insert-queue
   *pp = b;
 
   // Start disk if necessary.
