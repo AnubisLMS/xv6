@@ -30,8 +30,6 @@ void ideintr(void) {
 // If B_DIRTY is set, write buf to disk, clear B_DIRTY, set B_VALID.
 // Else if B_VALID is not set, read buf from disk, set B_VALID.
 void iderw(struct buf* b) {
-  unsigned char* p;
-
   if(!(b->flags & B_BUSY))
     panic("iderw: buf not busy");
   if((b->flags & (B_VALID | B_DIRTY)) == B_VALID)
@@ -41,7 +39,7 @@ void iderw(struct buf* b) {
   if(b->blockno >= disksize)
     panic("iderw: block out of range");
 
-  p = memdisk + b->blockno * BSIZE;
+  unsigned char* p = memdisk + b->blockno * BSIZE;
 
   if(b->flags & B_DIRTY) {
     b->flags &= ~B_DIRTY;
