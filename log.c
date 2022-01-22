@@ -63,9 +63,7 @@ void initlog(int dev) {
 
 // Copy committed blocks from log to their home location
 static void install_trans(void) {
-  int tail;
-
-  for(tail = 0; tail < log.lh.n; tail++) {
+  for(int tail = 0; tail < log.lh.n; tail++) {
     struct buf* lbuf = bread(log.dev, log.start + tail + 1); // read log block
     struct buf* dbuf = bread(log.dev, log.lh.block[tail]);   // read dst
     memmove(dbuf->data, lbuf->data, BSIZE); // copy block to dst
@@ -79,9 +77,8 @@ static void install_trans(void) {
 static void read_head(void) {
   struct buf* buf = bread(log.dev, log.start);
   struct logheader* lh = (struct logheader*) (buf->data);
-  int i;
   log.lh.n = lh->n;
-  for(i = 0; i < log.lh.n; i++) {
+  for(int i = 0; i < log.lh.n; i++) {
     log.lh.block[i] = lh->block[i];
   }
   brelse(buf);
@@ -93,9 +90,8 @@ static void read_head(void) {
 static void write_head(void) {
   struct buf* buf = bread(log.dev, log.start);
   struct logheader* hb = (struct logheader*) (buf->data);
-  int i;
   hb->n = log.lh.n;
-  for(i = 0; i < log.lh.n; i++) {
+  for(int i = 0; i < log.lh.n; i++) {
     hb->block[i] = log.lh.block[i];
   }
   bwrite(buf);
@@ -129,37 +125,27 @@ void begin_op(void) {
 // called at the end of each FS system call.
 // commits if this was the last outstanding operation.
 void end_op(void) {
-  int do_commit = 0;
-
   acquire(&log.lock);
   log.outstanding -= 1;
   if(log.committing)
     panic("log.committing");
   if(log.outstanding == 0) {
-    do_commit = 1;
-    log.committing = 1;
-  } else {
-    // begin_op() may be waiting for log space.
-    wakeup(&log);
-  }
-  release(&log.lock);
-
-  if(do_commit) {
     // call commit w/o holding locks, since not allowed
     // to sleep with locks.
+    log.committing = 1;
+    release(&log.lock);
     commit();
     acquire(&log.lock);
     log.committing = 0;
-    wakeup(&log);
-    release(&log.lock);
   }
+  // begin_op() may be waiting for log space.
+  wakeup(&log);
+  release(&log.lock);
 }
 
 // Copy modified blocks from cache to log.
 static void write_log(void) {
-  int tail;
-
-  for(tail = 0; tail < log.lh.n; tail++) {
+  for(int tail = 0; tail < log.lh.n; tail++) {
     struct buf* to = bread(log.dev, log.start + tail + 1); // log block
     struct buf* from = bread(log.dev, log.lh.block[tail]); // cache block
     memmove(to->data, from->data, BSIZE);
@@ -189,18 +175,16 @@ static void commit() {
 //   log_write(bp)
 //   brelse(bp)
 void log_write(struct buf* b) {
-  int i;
-
   if(log.lh.n >= LOGSIZE || log.lh.n >= log.size - 1)
     panic("too big a transaction");
   if(log.outstanding < 1)
     panic("log_write outside of trans");
 
   acquire(&log.lock);
-  for(i = 0; i < log.lh.n; i++) {
+  int i;
+  for(i = 0; i < log.lh.n; i++)
     if(log.lh.block[i] == b->blockno) // log absorbtion
       break;
-  }
   log.lh.block[i] = b->blockno;
   if(i == log.lh.n)
     log.lh.n++;
