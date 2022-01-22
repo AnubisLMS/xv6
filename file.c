@@ -20,10 +20,8 @@ void fileinit(void) {
 
 // Allocate a file structure.
 struct file* filealloc(void) {
-  struct file* f;
-
   acquire(&ftable.lock);
-  for(f = ftable.file; f < ftable.file + NFILE; f++) {
+  for(struct file* f = ftable.file; f < ftable.file + NFILE; f++) {
     if(f->ref == 0) {
       f->ref = 1;
       release(&ftable.lock);
@@ -46,8 +44,6 @@ struct file* filedup(struct file* f) {
 
 // Close file f.  (Decrement ref count, close when reaches 0.)
 void fileclose(struct file* f) {
-  struct file ff;
-
   acquire(&ftable.lock);
   if(f->ref < 1)
     panic("fileclose");
@@ -55,7 +51,7 @@ void fileclose(struct file* f) {
     release(&ftable.lock);
     return;
   }
-  ff = *f;
+  struct file ff = *f;
   f->ref = 0;
   f->type = FD_NONE;
   release(&ftable.lock);
@@ -82,15 +78,14 @@ int filestat(struct file* f, struct stat* st) {
 
 // Read from file f.
 int fileread(struct file* f, char* addr, int n) {
-  int r;
-
   if(f->readable == 0)
     return -1;
   if(f->type == FD_PIPE)
     return piperead(f->pipe, addr, n);
   if(f->type == FD_INODE) {
     ilock(f->ip);
-    if((r = readi(f->ip, addr, f->off, n)) > 0)
+    int r = readi(f->ip, addr, f->off, n);
+    if(r > 0)
       f->off += r;
     iunlock(f->ip);
     return r;
@@ -101,8 +96,6 @@ int fileread(struct file* f, char* addr, int n) {
 // PAGEBREAK!
 // Write to file f.
 int filewrite(struct file* f, char* addr, int n) {
-  int r;
-
   if(f->writable == 0)
     return -1;
   if(f->type == FD_PIPE)
@@ -123,7 +116,8 @@ int filewrite(struct file* f, char* addr, int n) {
 
       begin_op();
       ilock(f->ip);
-      if((r = writei(f->ip, addr + i, f->off, n1)) > 0)
+      int r = writei(f->ip, addr + i, f->off, n1);
+      if(r > 0)
         f->off += r;
       iunlock(f->ip);
       end_op();
