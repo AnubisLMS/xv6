@@ -1,7 +1,7 @@
-#include "fs.h"
-
 #ifndef XV6_FILE_H
 #define XV6_FILE_H
+
+#include "fs.h"
 
 struct file {
   enum { FD_NONE, FD_PIPE, FD_INODE } type;
