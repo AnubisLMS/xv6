@@ -25,42 +25,32 @@ static struct {
 static void printint(int xx, int base, int sign) {
   static char digits[] = "0123456789abcdef";
   char buf[16];
+
+  sign = sign && xx < 0;
+  unsigned int x = sign ? -xx : xx;
+
   int i;
-  unsigned int x;
-
-  if(sign && (sign = xx < 0))
-    x = -xx;
-  else
-    x = xx;
-
-  i = 0;
-  do {
-    buf[i++] = digits[x % base];
-  } while((x /= base) != 0);
+  for(i = 0; x; i++, x /= base)
+    buf[i] = digits[x % base];
 
   if(sign)
-    buf[i++] = '-';
+    consputc('-');
 
   while(--i >= 0)
     consputc(buf[i]);
 }
-// PAGEBREAK: 50
 
 // Print to the console. only understands %d, %x, %p, %s.
 void cprintf(char* fmt, ...) {
-  int i, c, locking;
-  unsigned int* argp;
-  char* s;
-
-  locking = cons.locking;
+  int locking = cons.locking;
   if(locking)
     acquire(&cons.lock);
 
   if(fmt == 0)
     panic("null fmt");
 
-  argp = (unsigned int*) (void*) (&fmt + 1);
-  for(i = 0; (c = fmt[i] & 0xff) != 0; i++) {
+  unsigned int* argp = (unsigned int*) (&fmt + 1);
+  for(int c, i = 0; (c = fmt[i] & 0xff); i++) {
     if(c != '%') {
       consputc(c);
       continue;
@@ -76,12 +66,13 @@ void cprintf(char* fmt, ...) {
       case 'p':
         printint(*argp++, 16, 0);
         break;
-      case 's':
-        if((s = (char*) *argp++) == 0)
+      case 's': {
+        char* s = (char*) *argp++;
+        if(!s)
           s = "(null)";
         for(; *s; s++)
           consputc(*s);
-        break;
+      } break;
       case '%':
         consputc('%');
         break;
@@ -98,33 +89,27 @@ void cprintf(char* fmt, ...) {
 }
 
 void panic(char* s) {
-  int i;
-  unsigned int pcs[10];
-
   cli();
   cons.locking = 0;
-  cprintf("cpu%d: panic: ", cpu->id);
-  cprintf(s);
-  cprintf("\n");
+  cprintf("cpu%d: panic: %s\n", cpu->id, s);
+
+  unsigned int pcs[10];
   getcallerpcs(&s, pcs);
-  for(i = 0; i < 10; i++)
+  cprintf("%p", pcs[0]);
+  for(int i = 1; i < 10; i++)
     cprintf(" %p", pcs[i]);
   panicked = 1; // freeze other CPU
-  for(;;)
-    ;
+  for(;;) {}
 }
 
-// PAGEBREAK: 50
 #define BACKSPACE 0x100
 #define CRTPORT 0x3d4
 static unsigned short* crt = (unsigned short*) P2V(0xb8000); // CGA memory
 
 static void cgaputc(int c) {
-  int pos;
-
   // Cursor position: col + 80*row.
   outb(CRTPORT, 14);
-  pos = inb(CRTPORT + 1) << 8;
+  int pos = inb(CRTPORT + 1) << 8;
   outb(CRTPORT, 15);
   pos |= inb(CRTPORT + 1);
 
@@ -155,8 +140,7 @@ static void cgaputc(int c) {
 void consputc(int c) {
   if(panicked) {
     cli();
-    for(;;)
-      ;
+    for(;;) {}
   }
 
   if(c == BACKSPACE) {
@@ -179,10 +163,10 @@ struct {
 #define C(x) ((x) - '@') // Control-x
 
 void consoleintr(int (*getc)(void)) {
-  int c, doprocdump = 0;
+  int doprocdump = 0;
 
   acquire(&cons.lock);
-  while((c = getc()) >= 0) {
+  for(int c; (c = getc()) >= 0;) {
     switch(c) {
       case C('P'):      // Process listing.
         doprocdump = 1; // procdump() locks cons.lock indirectly; invoke later
@@ -215,19 +199,16 @@ void consoleintr(int (*getc)(void)) {
     }
   }
   release(&cons.lock);
-  if(doprocdump) {
+  if(doprocdump)
     procdump(); // now call procdump() wo. cons.lock held
-  }
 }
 
 int consoleread(struct inode* ip, char* dst, int n) {
-  unsigned int target;
-  int c;
+  unsigned int target = n;
 
   iunlock(ip);
-  target = n;
   acquire(&cons.lock);
-  while(n > 0) {
+  while(n) {
     while(input.r == input.w) {
       if(proc->killed) {
         release(&cons.lock);
@@ -236,7 +217,8 @@ int consoleread(struct inode* ip, char* dst, int n) {
       }
       sleep(&input.r, &cons.lock);
     }
-    c = input.buf[input.r++ % INPUT_BUF];
+
+    int c = input.buf[input.r++ % INPUT_BUF];
     if(c == C('D')) { // EOF
       if(n < target) {
         // Save ^D for next time, to make sure
@@ -257,15 +239,12 @@ int consoleread(struct inode* ip, char* dst, int n) {
 }
 
 int consolewrite(struct inode* ip, char* buf, int n) {
-  int i;
-
   iunlock(ip);
   acquire(&cons.lock);
-  for(i = 0; i < n; i++)
+  for(int i = 0; i < n; i++)
     consputc(buf[i] & 0xff);
   release(&cons.lock);
   ilock(ip);
-
   return n;
 }
 
