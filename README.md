@@ -5,12 +5,12 @@ If you are using the class vm, to compile, just run `make xv6.img` in the projec
 
 ## Debugging 
 You will then want to navigate to
-run `make clean xv6.img qemu-vscode` once the gdb server has started, it will wait for connections. You can then 
+run `make clean && make qemu-vscode` once the gdb server has started, it will wait for connections. You can then 
 navigate to your debug console in VSCode and select gdb from the gear icon. You should see an "Attach to QEMU" profile 
 available. When you run this, you should connect to the gdb server. Go ahead and try to set up breakpoints and whatnot. 
 
 ## Compiling with Docker (if you want to)
-If you are already a linux power user, you can compile natively with docker. You can compile xv6 with docker my running `make docker-build`. That will run an ubunut 16.04 container that will compile xv6.img for you. I would not recommend relying on this unless you are already profcient with docker.
+If you are already a linux power user, you can compile natively with docker. You can compile xv6 with docker my running `make docker`. That will run an ubunut 18.04 container that will compile xv6.img for you. I would not recommend relying on this unless you are already profcient with docker.
 
 ## Dependencies (if you are not on the VM)
 If you are compiling natively, will need to add a plugin to your vscode. To install the necessary dependencies for debugging in vscode, press `ctrl p` then enter `ext install webfreak.debug`. 
