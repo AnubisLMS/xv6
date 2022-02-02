@@ -1,0 +1,16 @@
+-nostdinc
+-fno-pic
+-static
+-fno-builtin
+-fno-strict-aliasing
+-O0
+-g
+-Wall
+-MD
+-gdwarf-2
+-m32
+-Werror
+-fno-omit-frame-pointer
+-ggdb
+-I.
+-fno-stack-protector
