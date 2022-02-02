@@ -10,7 +10,7 @@ navigate to your debug console in VSCode and select gdb from the gear icon. You 
 available. When you run this, you should connect to the gdb server. Go ahead and try to set up breakpoints and whatnot. 
 
 ## Compiling with Docker (if you want to)
-If you are already a linux power user, you can compile natively with docker. You can compile xv6 with docker my running `make docker`. That will run an ubunut 18.04 container that will compile xv6.img for you. I would not recommend relying on this unless you are already profcient with docker.
+If you are already a linux power user, you can compile natively with docker. You can compile xv6 with docker my running `make docker`. That will run an ubuntu 18.04 container that will compile xv6.img for you. I would not recommend relying on this unless you are already profcient with docker.
 
 ## Dependencies (if you are not on the VM)
 If you are compiling natively, will need to add a plugin to your vscode. To install the necessary dependencies for debugging in vscode, press `ctrl p` then enter `ext install webfreak.debug`. 
