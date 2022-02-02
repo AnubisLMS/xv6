@@ -27,11 +27,12 @@ OBJS = \
 	$K/timer.o\
 	$K/trap.o\
 	$K/uart.o\
-  $K/vectors.o\
-  $K/trapasm.o\
+	$K/vectors.o\
+	$K/trapasm.o\
 	$K/vm.o\
+	$K/entry.o\
 
-all: fs.img
+all: xv6.img
 
 # If you would like to compile natively with docker, you can use these targets.
 # To do this, run 'make docker'. This will compile the xv6.img in a docker container
@@ -74,14 +75,14 @@ LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 OBJFLAGS = -S -O binary -j .text
-CFLAGS = -nostdinc -fno-pic -static -fno-builtin -fno-strict-aliasing -fvar-tracking -fvar-tracking-assignments -O0 -g -Wall -MD -gdwarf-2 -m32 -Werror -fno-omit-frame-pointer
+CFLAGS = -nostdinc -fno-pic -static -fno-builtin -fno-strict-aliasing -fvar-tracking -fvar-tracking-assignments -O0 -g -Wall -MD -gdwarf-2 -m32 -Werror -fno-omit-frame-pointer -ggdb
 CFLAGS += -I.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 ASFLAGS = -m32 -gdwarf-2 -Wa,-divide -I.
 # FreeBSD ld wants ``elf_i386_fbsd''
 LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)
 
-$K/bootblock: $K/bootasm.S $K/bootmain.c
+$K/bootblock:
 	# bootmain must be optimized or it won't fit in the bootloader section
 	$(CC) $(CFLAGS) -O -c $K/bootmain.c -o $K/bootmain.o
 	$(CC) $(CFLAGS) -c $K/bootasm.S -o $K/bootasm.o
@@ -90,20 +91,20 @@ $K/bootblock: $K/bootasm.S $K/bootmain.c
 	$(OBJCOPY) $(OBJFLAGS) $K/bootblock.o $K/bootblock
 	perl $K/sign.pl $K/bootblock
 
-$U/initcode: $U/initcode.S
+$U/initcode:
 	$(CC) $(CFLAGS) -c $U/initcode.S -o $U/initcode.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
 	$(OBJCOPY) $(OBJFLAGS) $U/initcode.out $U/initcode
 	$(OBJDUMP) -S $U/initcode.o > $U/initcode.asm
 
-$K/entryother: $K/entryother.S
+$K/entryother:
 	$(CC) $(CFLAGS) -c $K/entryother.S -o $K/entryother.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o $K/bootblockother.o $K/entryother.o
 	$(OBJCOPY) $(OBJFLAGS) $K/bootblockother.o $K/entryother
 	$(OBJDUMP) -S $K/bootblockother.o > $K/entryother.asm
 
-$K/kernel: $(OBJS) $K/entry.o $U/initcode $K/entryother
-	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $K/entry.o $(OBJS) -b binary $U/initcode $K/entryother
+$K/kernel: $(OBJS) $U/initcode $K/entryother
+	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) -b binary $U/initcode $K/entryother
 	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
 	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
@@ -161,7 +162,7 @@ xv6.img: $K/bootblock $K/kernel fs.img
 
 clean:
 	rm -f */*.o */*.d */*.asm */*.sym $K/entryother \
-	$U/initcode $U/initcode.out $K/kernel fs.img mkfs/mkfs \
+	$K/bootblock $U/initcode $U/initcode.out $K/kernel fs.img mkfs/mkfs \
 	.gdbinit \
 	$(UPROGS)
 
@@ -176,7 +177,9 @@ ifndef CPUS
 CPUS := 1
 endif
 
-QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw \
+QEMUOPTS = \
+   -drive file=xv6.img,media=disk,index=0,format=raw \
+   -drive file=fs.img,index=1,media=disk,format=raw \
    -smp $(CPUS) -m 512 $(QEMUEXTRA) -display none -nographic
 
 qemu: $K/kernel fs.img
@@ -184,6 +187,7 @@ qemu: $K/kernel fs.img
 
 .PHONY: .gdbinit
 .gdbinit: .gdbinit.tmpl
+	cp .gdbinit.tmpl .gdbinit
 	if [ -f ~/.gdbinit ]; then sed -i "s/# source/source/" ~/.gdbinit; fi
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
@@ -199,4 +203,5 @@ qemu-gdb: fs.img xv6.img .gdbinit
 
 qemu-vscode: fs.img xv6.img launch.json
 	@echo "*** Now attach to qemu in the debug console ofb vscode." 1>&2
+	@echo "file kernel/kernel" > .gdbinit
 	$(QEMU) -serial mon:stdio $(QEMUOPTS) -S $(QEMUGDB)

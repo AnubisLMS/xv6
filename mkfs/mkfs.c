@@ -124,7 +124,16 @@ int main(int argc, char* argv[]) {
   strcpy(de.name, "..");
   iappend(rootino, &de, sizeof(de));
 
-  for(i = 2; i < argc; i++) {
+  for(i = 2; i < argc; i++){
+    // get rid of "user/"
+    char *shortname;
+    if(strncmp(argv[i], "user/", 5) == 0)
+      shortname = argv[i] + 5;
+    else
+      shortname = argv[i];
+    
+    assert(index(shortname, '/') == 0);
+
     if((fd = open(argv[i], 0)) < 0) {
       perror(argv[i]);
       exit(1);
@@ -134,14 +143,14 @@ int main(int argc, char* argv[]) {
     // The binaries are named _rm, _cat, etc. to keep the
     // build operating system from trying to execute them
     // in place of system binaries like rm and cat.
-    if(argv[i][0] == '_')
-      ++argv[i];
+    if(shortname[0] == '_')
+      shortname += 1;
 
     inum = ialloc(T_FILE);
 
     bzero(&de, sizeof(de));
     de.inum = xshort(inum);
-    strncpy(de.name, argv[i], DIRSIZ);
+    strncpy(de.name, shortname, DIRSIZ);
     iappend(rootino, &de, sizeof(de));
 
     while((cc = read(fd, buf, sizeof(buf))) > 0)
@@ -149,6 +158,7 @@ int main(int argc, char* argv[]) {
 
     close(fd);
   }
+
 
   // fix size of root inode dir
   rinode(rootino, &din);
