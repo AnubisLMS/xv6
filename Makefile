@@ -162,7 +162,7 @@ xv6.img: $K/bootblock $K/kernel fs.img
 
 clean:
 	rm -f */*.o */*.d */*.asm */*.sym $K/entryother \
-	$K/bootblock $U/initcode $U/initcode.out $K/kernel fs.img mkfs/mkfs \
+	$K/bootblock $U/initcode $U/initcode.out $K/kernel xv6.img fs.img mkfs/mkfs \
 	.gdbinit \
 	$(UPROGS)
 
