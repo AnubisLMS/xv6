@@ -182,8 +182,17 @@ QEMUOPTS = \
    -drive file=fs.img,index=1,media=disk,format=raw \
    -smp $(CPUS) -m 512 $(QEMUEXTRA) -display none -nographic
 
-qemu: $K/kernel fs.img
+qemu: $K/kernel fs.img xv6.img
 	$(QEMU) $(QEMUOPTS)
+
+qemu-gdb: $K/kernel fs.img xv6.img .gdbinit
+	@echo "*** Now run 'gdb'." 1>&2
+	$(QEMU) -serial mon:stdio $(QEMUOPTS) -S $(QEMUGDB)
+
+qemu-vscode: $K/kernel fs.img xv6.img launch.json
+	@echo "*** Now attach to qemu in the debug console ofb vscode." 1>&2
+	@echo "file kernel/kernel" > .gdbinit
+	$(QEMU) -serial mon:stdio $(QEMUOPTS) -S $(QEMUGDB)
 
 .PHONY: .gdbinit
 .gdbinit: .gdbinit.tmpl
@@ -196,12 +205,3 @@ launch.json: launch.json.tmpl
 	if [ -f .gdbinit ]; then rm .gdbinit; fi
 	sed -i "s/^source/# source/" ~/.gdbinit
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > .vscode/$@
-
-qemu-gdb: fs.img xv6.img .gdbinit
-	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) -serial mon:stdio $(QEMUOPTS) -S $(QEMUGDB)
-
-qemu-vscode: fs.img xv6.img launch.json
-	@echo "*** Now attach to qemu in the debug console ofb vscode." 1>&2
-	@echo "file kernel/kernel" > .gdbinit
-	$(QEMU) -serial mon:stdio $(QEMUOPTS) -S $(QEMUGDB)
