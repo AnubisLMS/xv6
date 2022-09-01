@@ -54,6 +54,10 @@ void panic(char *);
 struct cmd *parsecmd(char *);
 
 // Execute cmd.  Never returns.
+#if __GNUC__ >= 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winfinite-recursion"
+#endif
 void runcmd(struct cmd *cmd) {
   int p[2];
   struct backcmd *bcmd;
@@ -127,6 +131,9 @@ void runcmd(struct cmd *cmd) {
   }
   exit();
 }
+#if __GNUC__ >= 12
+#pragma GCC diagnostic pop
+#endif
 
 int getcmd(char *buf, int nbuf) {
   printf(2, "$ ");

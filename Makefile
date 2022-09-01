@@ -76,7 +76,7 @@ OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 OBJFLAGS = -S -O binary -j .text
 CFLAGS = -nostdinc -fno-pic -static -fno-builtin -fno-strict-aliasing -fvar-tracking -fvar-tracking-assignments -O0 -g -Wall -MD -gdwarf-2 -m32 -Werror -fno-omit-frame-pointer -ggdb
-CFLAGS += -I.
+CFLAGS += -I. -mno-sse
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 ASFLAGS = -m32 -gdwarf-2 -Wa,-divide -I.
 # FreeBSD ld wants ``elf_i386_fbsd''
@@ -111,8 +111,7 @@ $K/kernel: $(OBJS) $U/initcode $K/entryother
 ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 
 _%: %.o $(ULIB)
-	$(OBJCOPY) --remove-section .note.gnu.property $U/ulib.o
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
@@ -178,9 +177,9 @@ CPUS := 1
 endif
 
 QEMUOPTS = \
-   -drive file=xv6.img,media=disk,index=0,format=raw \
-   -drive file=fs.img,index=1,media=disk,format=raw \
-   -smp $(CPUS) -m 512 $(QEMUEXTRA) -display none -nographic
+	-drive file=xv6.img,media=disk,index=0,format=raw \
+	-drive file=fs.img,index=1,media=disk,format=raw \
+	-smp $(CPUS) -m 512 -display none -nographic
 
 qemu: $K/kernel fs.img xv6.img
 	$(QEMU) $(QEMUOPTS)
