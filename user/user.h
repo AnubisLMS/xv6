@@ -36,4 +36,5 @@ uint strlen(char*);
 void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
+void* realloc(void*, uint);
 int atoi(const char*);

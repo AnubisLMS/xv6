@@ -56,6 +56,22 @@ static Header *morecore(uint nu) {
   return freep;
 }
 
+void *realloc(void *ap, uint nbytes) {
+  Header *bp = (Header *)ap - 1;
+  uint nunits = (nbytes + sizeof(Header) - 1) / sizeof(Header) + 1;
+
+  if (bp->s.size >= nunits)
+    return ap;
+
+  void *np = malloc(nbytes);
+  if (!np)
+    return 0;
+
+  memmove(np, ap, (bp->s.size - 1) * sizeof(Header));
+  free(ap);
+  return np;
+}
+
 void *malloc(uint nbytes) {
   Header *p, *prevp;
   uint nunits;
