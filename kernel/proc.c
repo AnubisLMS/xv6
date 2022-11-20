@@ -7,10 +7,7 @@
 #include "kernel/proc.h"
 #include "kernel/spinlock.h"
 
-struct {
-  struct spinlock lock;
-  struct proc proc[NPROC];
-} ptable;
+struct ptable ptable;
 
 static struct proc *initproc;
 
@@ -77,7 +74,8 @@ void userinit(void) {
   initproc = p;
   if ((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
-  inituvm(p->pgdir, _binary_user_initcode_start, (int)_binary_user_initcode_size);
+  inituvm(p->pgdir, _binary_user_initcode_start,
+          (int)_binary_user_initcode_size);
   p->sz = PGSIZE;
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;

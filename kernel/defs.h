@@ -9,6 +9,7 @@ struct file;
 struct inode;
 struct pipe;
 struct proc;
+struct ptable;
 struct rtcdate;
 struct spinlock;
 struct stat;

@@ -2,7 +2,9 @@
 #define XV6_PROC_H
 
 #include "types.h"
+#include "param.h"
 #include "defs.h"
+#include "spinlock.h"
 #include "mmu.h"
 
 // Segments in proc->gdt.
@@ -81,6 +83,13 @@ struct proc {
   struct inode *cwd;          // Current directory
   char name[16];              // Process name (debugging)
 };
+
+struct ptable {
+  struct spinlock lock;
+  struct proc proc[NPROC];
+};
+
+extern struct ptable ptable;
 
 // Process memory is laid out contiguously, low addresses first:
 //   text

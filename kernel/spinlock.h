@@ -2,7 +2,7 @@
 #define XV6_SPINLOCK_H
 
 #include "types.h"
-#include "proc.h"
+#include "defs.h"
 
 // Mutual exclusion lock.
 struct spinlock {
