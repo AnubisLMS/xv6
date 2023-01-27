@@ -1,16 +1,17 @@
 #ifndef XV6_FILE_H
 #define XV6_FILE_H
 
-#include "types.h"
 #include "defs.h"
+#include "fs.h"
+#include "types.h"
 
 struct file {
   enum { FD_NONE, FD_PIPE, FD_INODE } type;
   int ref; // reference count
   char readable;
   char writable;
-  struct pipe *pipe;
-  struct inode *ip;
+  struct pipe* pipe;
+  struct inode* ip;
   uint off;
 };
 
@@ -34,15 +35,12 @@ struct inode {
 // table mapping major device number to
 // device functions
 struct devsw {
-  int (*read)(struct inode *, char *, int);
-  int (*write)(struct inode *, char *, int);
+  int (*read)(struct inode*, char*, int);
+  int (*write)(struct inode*, char*, int);
 };
 
 extern struct devsw devsw[];
 
 #define CONSOLE 1
-
-// PAGEBREAK!
-//  Blank page.
 
 #endif // XV6_FILE_H

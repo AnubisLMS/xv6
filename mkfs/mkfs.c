@@ -11,11 +11,11 @@
 #include "kernel/stat.h"
 
 #ifndef static_assert
-#define static_assert(a, b)                                                   \
-  do {                                                                        \
-    switch(0)                                                                 \
-    case 0:                                                                   \
-    case(a):;                                                                 \
+#define static_assert(a, b)                                                    \
+  do {                                                                         \
+    switch(0)                                                                  \
+    case 0:                                                                    \
+    case(a):;                                                                  \
   } while(0)
 #endif
 
@@ -98,8 +98,9 @@ int main(int argc, char* argv[]) {
   sb.inodestart = xint(2 + nlog);
   sb.bmapstart = xint(2 + nlog + ninodeblocks);
 
-  printf("nmeta %d (boot, super, log blocks %u inode blocks %u, bitmap blocks "
-         "%u) blocks %d total %d\n",
+  printf(
+      "nmeta %d (boot, super, log blocks %u inode blocks %u, bitmap blocks "
+      "%u) blocks %d total %d\n",
       nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);
 
   freeblock = nmeta; // the first free block that we can allocate
@@ -124,14 +125,14 @@ int main(int argc, char* argv[]) {
   strcpy(de.name, "..");
   iappend(rootino, &de, sizeof(de));
 
-  for(i = 2; i < argc; i++){
+  for(i = 2; i < argc; i++) {
     // get rid of "user/"
-    char *shortname;
+    char* shortname;
     if(strncmp(argv[i], "user/", 5) == 0)
       shortname = argv[i] + 5;
     else
       shortname = argv[i];
-    
+
     assert(index(shortname, '/') == 0);
 
     if((fd = open(argv[i], 0)) < 0) {

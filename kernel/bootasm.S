@@ -18,7 +18,7 @@ start:
   movw    %ax,%es             # -> Extra Segment
   movw    %ax,%ss             # -> Stack Segment
 
-  # Physical address line A20 is tied to zero so that the first PCs 
+  # Physical address line A20 is tied to zero so that the first PCs
   # with 2 MB would run software that assumed 1 MB.  Undo that.
 seta20.1:
   inb     $0x64,%al               # Wait for not busy
@@ -44,7 +44,6 @@ seta20.2:
   orl     $CR0_PE, %eax
   movl    %eax, %cr0
 
-//PAGEBREAK!
   # Complete transition to 32-bit protected mode by using long jmp
   # to reload %cs and %eip.  The segment descriptors are set up with no
   # translation, so that the mapping is still the identity mapping.
@@ -85,4 +84,3 @@ gdt:
 gdtdesc:
   .word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1
   .long   gdt                             # address gdt
-

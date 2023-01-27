@@ -73,7 +73,6 @@ CC = $(TOOLPREFIX)gcc
 AS = $(TOOLPREFIX)gas
 LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy
-OBJDUMP = $(TOOLPREFIX)objdump
 OBJFLAGS = -S -O binary -j .text
 CFLAGS = -nostdinc -fno-pic -static -fno-builtin -fno-strict-aliasing -fvar-tracking -fvar-tracking-assignments -O0 -g -Wall -MD -gdwarf-2 -m32 -Werror -fno-omit-frame-pointer -ggdb
 CFLAGS += -I. -mgeneral-regs-only
@@ -87,7 +86,6 @@ $K/bootblock:
 	$(CC) $(CFLAGS) -O -c $K/bootmain.c -o $K/bootmain.o
 	$(CC) $(CFLAGS) -c $K/bootasm.S -o $K/bootasm.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o $K/bootblock.o $K/bootasm.o $K/bootmain.o
-	$(OBJDUMP) -S $K/bootblock.o > $K/bootblock.asm
 	$(OBJCOPY) $(OBJFLAGS) $K/bootblock.o $K/bootblock
 	perl $K/sign.pl $K/bootblock
 
@@ -95,31 +93,24 @@ $U/initcode:
 	$(CC) $(CFLAGS) -c $U/initcode.S -o $U/initcode.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
 	$(OBJCOPY) $(OBJFLAGS) $U/initcode.out $U/initcode
-	$(OBJDUMP) -S $U/initcode.o > $U/initcode.asm
 
 $K/entryother:
 	$(CC) $(CFLAGS) -c $K/entryother.S -o $K/entryother.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o $K/bootblockother.o $K/entryother.o
 	$(OBJCOPY) $(OBJFLAGS) $K/bootblockother.o $K/entryother
-	$(OBJDUMP) -S $K/bootblockother.o > $K/entryother.asm
 
 $K/kernel: $(OBJS) $U/initcode $K/entryother
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) -b binary $U/initcode $K/entryother
-	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
-	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
 ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
-	$(OBJDUMP) -S $@ > $*.asm
-	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
 $U/_forktest: $U/forktest.o $(ULIB)
 	# forktest has less library code linked in - needs to be small
 	# in order to be able to max out the proc table.
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
-	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
 $U/usys.o : $U/usys.S
 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S

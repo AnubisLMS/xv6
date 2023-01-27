@@ -37,7 +37,12 @@
 #define C(x) (x - '@')
 
 static uchar shiftcode[256] = {
-    [0x1D] CTL, [0x2A] SHIFT, [0x36] SHIFT, [0x38] ALT, [0x9D] CTL, [0xB8] ALT,
+    [0x1D] CTL,
+    [0x2A] SHIFT,
+    [0x36] SHIFT,
+    [0x38] ALT,
+    [0x9D] CTL,
+    [0xB8] ALT,
 };
 
 static uchar togglecode[256] = {

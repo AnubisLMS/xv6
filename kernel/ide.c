@@ -1,16 +1,16 @@
 // Simple PIO-based (non-DMA) IDE driver code.
 
-#include "kernel/types.h"
+#include "buf.h"
 #include "kernel/defs.h"
-#include "kernel/param.h"
+#include "kernel/fs.h"
 #include "kernel/memlayout.h"
 #include "kernel/mmu.h"
+#include "kernel/param.h"
 #include "kernel/proc.h"
-#include "kernel/x86.h"
-#include "kernel/traps.h"
 #include "kernel/spinlock.h"
-#include "kernel/fs.h"
-#include "buf.h"
+#include "kernel/traps.h"
+#include "kernel/types.h"
+#include "kernel/x86.h"
 
 #define SECTOR_SIZE 512
 #define IDE_BSY 0x80
@@ -26,18 +26,18 @@
 // You must hold idelock while manipulating queue.
 
 static struct spinlock idelock;
-static struct buf *idequeue;
+static struct buf* idequeue;
 
 static int havedisk1;
-static void idestart(struct buf *);
+static void idestart(struct buf*);
 
 // Wait for IDE disk to become ready.
 static int idewait(int checkerr) {
   int r;
 
-  while (((r = inb(0x1f7)) & (IDE_BSY | IDE_DRDY)) != IDE_DRDY)
+  while(((r = inb(0x1f7)) & (IDE_BSY | IDE_DRDY)) != IDE_DRDY)
     ;
-  if (checkerr && (r & (IDE_DF | IDE_ERR)) != 0)
+  if(checkerr && (r & (IDE_DF | IDE_ERR)) != 0)
     return -1;
   return 0;
 }
@@ -52,8 +52,8 @@ void ideinit(void) {
 
   // Check if disk 1 is present
   outb(0x1f6, 0xe0 | (1 << 4));
-  for (i = 0; i < 1000; i++) {
-    if (inb(0x1f7) != 0) {
+  for(i = 0; i < 1000; i++) {
+    if(inb(0x1f7) != 0) {
       havedisk1 = 1;
       break;
     }
@@ -64,15 +64,15 @@ void ideinit(void) {
 }
 
 // Start the request for b.  Caller must hold idelock.
-static void idestart(struct buf *b) {
-  if (b == 0)
+static void idestart(struct buf* b) {
+  if(b == 0)
     panic("idestart");
-  if (b->blockno >= FSSIZE)
+  if(b->blockno >= FSSIZE)
     panic("incorrect blockno");
   int sector_per_block = BSIZE / SECTOR_SIZE;
   int sector = b->blockno * sector_per_block;
 
-  if (sector_per_block > 7)
+  if(sector_per_block > 7)
     panic("idestart");
 
   idewait(0);
@@ -82,7 +82,7 @@ static void idestart(struct buf *b) {
   outb(0x1f4, (sector >> 8) & 0xff);
   outb(0x1f5, (sector >> 16) & 0xff);
   outb(0x1f6, 0xe0 | ((b->dev & 1) << 4) | ((sector >> 24) & 0x0f));
-  if (b->flags & B_DIRTY) {
+  if(b->flags & B_DIRTY) {
     outb(0x1f7, IDE_CMD_WRITE);
     outsl(0x1f0, b->data, BSIZE / 4);
   } else {
@@ -92,11 +92,11 @@ static void idestart(struct buf *b) {
 
 // Interrupt handler.
 void ideintr(void) {
-  struct buf *b;
+  struct buf* b;
 
   // First queued buffer is the active request.
   acquire(&idelock);
-  if ((b = idequeue) == 0) {
+  if((b = idequeue) == 0) {
     release(&idelock);
     // cprintf("spurious IDE interrupt\n");
     return;
@@ -104,7 +104,7 @@ void ideintr(void) {
   idequeue = b->qnext;
 
   // Read data if needed.
-  if (!(b->flags & B_DIRTY) && idewait(1) >= 0)
+  if(!(b->flags & B_DIRTY) && idewait(1) >= 0)
     insl(0x1f0, b->data, BSIZE / 4);
 
   // Wake process waiting for this buf.
@@ -113,40 +113,39 @@ void ideintr(void) {
   wakeup(b);
 
   // Start disk on next buf in queue.
-  if (idequeue != 0)
+  if(idequeue != 0)
     idestart(idequeue);
 
   release(&idelock);
 }
 
-// PAGEBREAK!
 // Sync buf with disk.
 // If B_DIRTY is set, write buf to disk, clear B_DIRTY, set B_VALID.
 // Else if B_VALID is not set, read buf from disk, set B_VALID.
-void iderw(struct buf *b) {
-  struct buf **pp;
-
-  if (!(b->flags & B_BUSY))
+void iderw(struct buf* b) {
+  if(!(b->flags & B_BUSY))
     panic("iderw: buf not busy");
-  if ((b->flags & (B_VALID | B_DIRTY)) == B_VALID)
+  if((b->flags & (B_VALID | B_DIRTY)) == B_VALID)
     panic("iderw: nothing to do");
-  if (b->dev != 0 && !havedisk1)
+  if(b->dev != 0 && !havedisk1)
     panic("iderw: ide disk 1 not present");
 
   acquire(&idelock); // DOC:acquire-lock
 
   // Append b to idequeue.
   b->qnext = 0;
-  for (pp = &idequeue; *pp; pp = &(*pp)->qnext) // DOC:insert-queue
-    ;
+  struct buf** pp = &idequeue;
+  while(*pp)
+    pp = &(*pp)->qnext;
+
   *pp = b;
 
   // Start disk if necessary.
-  if (idequeue == b)
+  if(idequeue == b)
     idestart(b);
 
   // Wait for request to finish.
-  while ((b->flags & (B_VALID | B_DIRTY)) != B_VALID) {
+  while((b->flags & (B_VALID | B_DIRTY)) != B_VALID) {
     sleep(b, &idelock);
   }
 
