@@ -14,6 +14,9 @@
 #include "kernel/file.h"
 #include "kernel/fcntl.h"
 
+int read_count = 0;
+struct spinlock countlock;
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int argfd(int n, int *pfd, struct file **pf) {
@@ -61,6 +64,10 @@ int sys_read(void) {
   struct file *f;
   int n;
   char *p;
+
+  acquire(&countlock);
+  ++read_count;
+  release(&countlock);
 
   if (argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
@@ -404,3 +411,5 @@ int sys_pipe(void) {
   fd[1] = fd1;
   return 0;
 }
+
+int sys_getreadcount(void) { return read_count; }

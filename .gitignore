@@ -16,3 +16,7 @@ mkfs/mkfs
 .vscode
 .gdb_history
 .idea
+test/
+tests-out/
+test*
+Makefile.test
