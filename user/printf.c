@@ -29,14 +29,11 @@ static void printint(int fd, int xx, int base, int sgn) {
     putc(fd, buf[i]);
 }
 
-// Print to the given fd. Only understands %d, %x, %p, %s.
-void printf(int fd, char* fmt, ...) {
+void vfprintf(int fd, char* fmt, unsigned* ap) {
   char* s;
   int c, i, state;
-  uint* ap;
 
   state = 0;
-  ap = (uint*) (void*) &fmt + 1;
   for(i = 0; fmt[i]; i++) {
     c = fmt[i] & 0xff;
     if(state == 0) {
@@ -74,4 +71,13 @@ void printf(int fd, char* fmt, ...) {
       state = 0;
     }
   }
+}
+
+void printf(char* fmt, ...) {
+  vfprintf(1, fmt, (unsigned*) (void*) &fmt + 1);
+}
+
+// Print to the given fd. Only understands %d, %x, %p, %s.
+void fprintf(int fd, char* fmt, ...) {
+  vfprintf(1, fmt, (unsigned*) (void*) &fmt + 1);
 }
