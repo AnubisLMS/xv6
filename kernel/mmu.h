@@ -50,6 +50,8 @@
 #define SEG_TSS 6   // this process's task state
 
 #ifndef __ASSEMBLER__
+#include "types.h"
+
 // Segment Descriptor
 struct segdesc {
   uint lim_15_0 : 16;  // Low bits of segment limit
@@ -150,7 +152,6 @@ struct segdesc {
 #define PTE_FLAGS(pte) ((uint) (pte) &0xFFF)
 
 #ifndef __ASSEMBLER__
-#include "types.h"
 
 typedef uint pte_t;
 
